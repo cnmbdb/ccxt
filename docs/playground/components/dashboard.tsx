@@ -59,6 +59,20 @@ import {
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import StrategyLibrary from "@/components/strategy-library";
+import {
+  starterStrategies,
+  validateCollection,
+  validateStrategy,
+  type StrategyConfig,
+} from "@/lib/strategy-config";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Robot = {
   id: string;
@@ -68,6 +82,8 @@ type Robot = {
   budget: number;
   running: boolean;
   created: string;
+  strategyId?: string;
+  strategyConfig?: StrategyConfig;
 };
 type Risk = {
   order: number;
@@ -128,7 +144,20 @@ export default function Dashboard() {
   const [view, setView] = useState("overview");
   const [theme, setTheme] = useState("dark");
   const [mobile, setMobile] = useState(false);
-  const [bots, setBots] = useState<Robot[]>(initialBots);
+  const [bots, setBots] = useState<Robot[]>(() =>
+    initialBots.map((bot) => {
+      const strategy = starterStrategies.find((s) => s.name === bot.strategy);
+      return strategy
+        ? {
+            ...bot,
+            strategyId: strategy.id,
+            strategyConfig: { ...structuredClone(strategy), pair: bot.pair },
+          }
+        : bot;
+    }),
+  );
+  const [strategies, setStrategies] =
+    useState<StrategyConfig[]>(starterStrategies);
   const [risk, setRisk] = useState<Risk>({
     order: 100,
     position: 30,
@@ -148,6 +177,7 @@ export default function Dashboard() {
     name: "",
     pair: "BTC/USDT",
     strategy: "现货网格",
+    strategyId: "grid-default",
     budget: "1000",
   });
   const [settings, setSettings] = useState({
@@ -160,7 +190,31 @@ export default function Dashboard() {
       const raw = JSON.parse(
         localStorage.getItem("quant-console-v1") || "null",
       );
-      if (raw?.bots && Array.isArray(raw.bots)) setBots(raw.bots);
+      if (raw?.bots && Array.isArray(raw.bots)) {
+        const available: StrategyConfig[] = validateCollection(raw.strategies)
+          ? raw.strategies
+          : starterStrategies;
+        setBots(
+          raw.bots.map((bot: Robot) => {
+            if (bot.strategyId) return bot;
+            const strategy = available.find((s) => s.name === bot.strategy);
+            return strategy
+              ? {
+                  ...bot,
+                  strategyId: strategy.id,
+                  strategyConfig: {
+                    ...structuredClone(strategy),
+                    pair: bot.pair,
+                  },
+                }
+              : bot;
+          }),
+        );
+      }
+      if (raw?.strategies !== undefined) {
+        if (validateCollection(raw.strategies)) setStrategies(raw.strategies);
+        else setNotice("策略存储格式无效，已载入默认策略，请重新配置。");
+      }
       if (raw?.risk) setRisk(raw.risk);
       if (raw?.settings) setSettings(raw.settings);
       if (raw?.connectionName) setConnectionName(raw.connectionName);
@@ -172,12 +226,12 @@ export default function Dashboard() {
       try {
         localStorage.setItem(
           "quant-console-v1",
-          JSON.stringify({ bots, risk, settings, connectionName }),
+          JSON.stringify({ bots, risk, settings, connectionName, strategies }),
         );
       } catch {
         setNotice("浏览器存储不可用，当前设置仅在本次会话保留。");
       }
-  }, [bots, risk, settings, connectionName, ready]);
+  }, [bots, risk, settings, connectionName, strategies, ready]);
   useEffect(() => {
     if (notice) {
       const t = setTimeout(() => setNotice(""), 4500);
@@ -223,14 +277,21 @@ export default function Dashboard() {
   function addBot(event: FormEvent) {
     event.preventDefault();
     const budget = Number(draft.budget);
+    const strategy = strategies.find((s) => s.id === draft.strategyId);
+    if (!strategy || validateStrategy(strategy).length) {
+      log("请选择有效的策略配置");
+      return;
+    }
     if (!draft.name.trim() || !Number.isFinite(budget) || budget <= 0) return;
     setBots((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         name: draft.name.trim(),
-        pair: draft.pair,
-        strategy: draft.strategy,
+        pair: strategy.pair,
+        strategy: strategy.name,
+        strategyId: strategy.id,
+        strategyConfig: structuredClone(strategy),
         budget,
         running: false,
         created: "本地配置",
@@ -272,35 +333,41 @@ export default function Dashboard() {
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className={field}>
-              <Label htmlFor="pair">交易对</Label>
-              <select
-                id="pair"
-                className={selectStyle}
-                value={draft.pair}
-                onChange={(e) => setDraft({ ...draft, pair: e.target.value })}
-              >
-                {["BTC/USDT", "ETH/USDT", "SOL/USDT"].map((s) => (
-                  <option key={s}>{s}</option>
+          <div className={field}>
+            <Label htmlFor="robot-strategy">策略配置</Label>
+            <Select
+              value={draft.strategyId}
+              onValueChange={(id) => {
+                const selected = strategies.find((s) => s.id === id);
+                if (selected)
+                  setDraft({
+                    ...draft,
+                    strategyId: id,
+                    strategy: selected.name,
+                    pair: selected.pair,
+                  });
+              }}
+            >
+              <SelectTrigger id="robot-strategy" className="w-full">
+                <SelectValue placeholder="请选择策略" />
+              </SelectTrigger>
+              <SelectContent>
+                {strategies.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name} · {s.pair}
+                    {s.agent.enabled ? " · Agent" : ""}
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
-            <div className={field}>
-              <Label htmlFor="strategy">策略</Label>
-              <select
-                id="strategy"
-                className={selectStyle}
-                value={draft.strategy}
-                onChange={(e) =>
-                  setDraft({ ...draft, strategy: e.target.value })
-                }
-              >
-                {["现货网格", "双均线趋势", "定时定额"].map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
+            {strategies.find((s) => s.id === draft.strategyId) && (
+              <p className="text-[11px] text-muted-foreground">
+                {strategies.find((s) => s.id === draft.strategyId)?.timeframe}{" "}
+                周期 · 单笔上限{" "}
+                {strategies.find((s) => s.id === draft.strategyId)?.maxOrder}{" "}
+                USDT · 创建时保存参数快照
+              </p>
+            )}
           </div>
           <div className={field}>
             <Label htmlFor="budget">分配资金 · USDT</Label>
@@ -902,64 +969,47 @@ export default function Dashboard() {
             </>
           )}
           {view === "strategies" && (
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  name: "现货网格",
-                  tag: "区间震荡",
-                  text: "在设定价格区间内，按固定网格配置买卖计划。",
-                  icon: LayoutDashboard,
-                },
-                {
-                  name: "双均线趋势",
-                  tag: "趋势跟随",
-                  text: "通过快慢均线交叉生成方向信号。",
-                  icon: ChartNoAxesCombined,
-                },
-                {
-                  name: "定时定额",
-                  tag: "长期配置",
-                  text: "按固定时间间隔配置定额买入计划。",
-                  icon: Clock3,
-                },
-              ].map((s) => (
-                <Card key={s.name} className="gap-4 rounded-lg shadow-none">
-                  <CardHeader>
-                    <div className="mb-2 grid size-9 place-items-center rounded-lg border bg-muted/40">
-                      <s.icon size={17} />
-                    </div>
-                    <CardTitle className="text-sm">{s.name}</CardTitle>
-                    <Badge
-                      variant="secondary"
-                      className="mt-1 w-fit text-[10px] font-normal"
-                    >
-                      {s.tag}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="mb-5 min-h-10 text-xs leading-6 text-muted-foreground">
-                      {s.text}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => {
-                        setDraft({
-                          ...draft,
-                          strategy: s.name,
-                          name: s.name + "机器人",
-                        });
-                        setCreate(true);
-                      }}
-                    >
-                      使用此模板
-                      <ArrowUpRight size={12} />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <StrategyLibrary
+              strategies={strategies}
+              usedIds={bots.map(
+                (b) =>
+                  b.strategyId ||
+                  strategies.find((s) => s.name === b.strategy)?.id ||
+                  "",
+              )}
+              onSave={(strategy) => {
+                if (
+                  strategies.some(
+                    (s) =>
+                      s.id !== strategy.id &&
+                      s.name.trim().toLowerCase() ===
+                        strategy.name.trim().toLowerCase(),
+                  )
+                )
+                  return false;
+                setStrategies((prev) =>
+                  prev.some((s) => s.id === strategy.id)
+                    ? prev.map((s) => (s.id === strategy.id ? strategy : s))
+                    : [...prev, strategy],
+                );
+                log("策略与 Agent 配置已保存");
+                return true;
+              }}
+              onDelete={(id) => {
+                setStrategies((prev) => prev.filter((s) => s.id !== id));
+                log("策略已删除");
+              }}
+              onUse={(strategy) => {
+                setDraft({
+                  ...draft,
+                  name: strategy.name + "机器人",
+                  strategyId: strategy.id,
+                  strategy: strategy.name,
+                  pair: strategy.pair,
+                });
+                setCreate(true);
+              }}
+            />
           )}
           {view === "orders" && (
             <Card className="gap-0 rounded-lg shadow-none">
@@ -1235,16 +1285,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
-          <footer className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-[10px] text-muted-foreground">
-            <span>
-              Quant Console <span className="mx-2">/</span> 本机开发版
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-1 rounded-full bg-emerald-500" />
-              配置保存在当前浏览器 <span className="mx-2">·</span> CCXT
-              引擎待接入
-            </span>
-          </footer>
         </main>
       </div>
       <Dialog open={exchangeOpen} onOpenChange={setExchangeOpen}>
