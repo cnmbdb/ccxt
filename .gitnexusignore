@@ -1,0 +1,10 @@
+# Focus local code intelligence on the management console, excluding generated SDKs.
+/*
+!/docs/
+/docs/*
+!/docs/playground/
+!/docs/playground/**
+/docs/playground/node_modules/
+/docs/playground/.next/
+/docs/playground/.gitnexus/
+/docs/playground/runtime/

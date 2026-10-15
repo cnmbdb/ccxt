@@ -1,0 +1,33 @@
+name: ccxt-local-dev
+services:
+  dev:
+    build:
+      context: ./docs/playground
+      dockerfile: Dockerfile.dev
+    init: true
+    ports:
+      - "127.0.0.1:8000:3000"
+    volumes:
+      - ./docs/playground:/app
+      - playground_modules:/app/node_modules
+      - playground_next:/app/.next
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+      NEXT_PUBLIC_PLAYGROUND_DISABLED: python,php,go,csharp,java
+    mem_limit: 3g
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 15s
+      start_period: 90s
+      retries: 3
+volumes:
+  playground_modules:
+  playground_next:
