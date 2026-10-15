@@ -26,3 +26,15 @@ gitnexus analyze docs/playground --skip-git --index-only --name ccxt-playground
 gitnexus context runTs --repo ccxt-playground
 gitnexus impact runTs --direction upstream --repo ccxt-playground
 ```
+
+## 策略与 Agent 配置
+
+策略库支持新增、编辑、复制、删除和搜索，可配置网格、均线、定投参数。每个策略可附加 Agent 模型 ID、分析指令、允许的能力、自定义能力项、信号置信度和分析超时；能力项目前是指令配置，尚未连接模型或插件执行服务。
+
+创建机器人时选择已保存策略，并保存参数快照；后续编辑策略不会修改已有机器人的快照。已有机器人会按策略名称迁移关联，旧账户、机器人、主题和风控配置继续保留在浏览器。
+
+运行配置校验测试：
+
+```bash
+docker compose -f compose.dev.yaml exec -T dev node --experimental-strip-types --test scripts/tests/strategy-config.test.mts
+```
