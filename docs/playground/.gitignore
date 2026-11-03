@@ -1,7 +1,9 @@
 # dependencies
 node_modules/
 
-# next.js
+# build output
+.output/
+.vite/
 .next/
 out/
 next-env.d.ts

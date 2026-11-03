@@ -35,8 +35,8 @@ export default function Toolbar({
         <span className="mark">
           <Logo size={22} />
         </span>
-        CCXT Playground
-        <span className="sub">live public market data</span>
+        Binance-Agent-botos
+        <span className="sub">AI quant trading console</span>
       </div>
 
       <div className="sep" />

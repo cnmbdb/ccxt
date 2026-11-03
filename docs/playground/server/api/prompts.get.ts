@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { defineHandler } from "nitro";
 import { PROMPTS } from "@/lib/prompts";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const SAMPLE = 8;
 
@@ -10,9 +8,10 @@ const SAMPLE = 8;
 // `?exclude=` carries the prompts currently on screen (the previous sample), so a
 // refresh always deals a fresh hand instead of re-dealing visible ones. Exclusion
 // is capped so it can never starve the pool below a full sample.
-export async function GET(req: NextRequest) {
+export default defineHandler(async (event) => {
+  const req = event.req;
   const excluded = new Set(
-    (req.nextUrl.searchParams.getAll("exclude") ?? []).slice(0, PROMPTS.length - SAMPLE),
+    (new URL(req.url).searchParams.getAll("exclude") ?? []).slice(0, PROMPTS.length - SAMPLE),
   );
   const pool = PROMPTS.map((_, i) => i).filter((i) => !excluded.has(PROMPTS[i]));
   const take = Math.min(SAMPLE, pool.length);
@@ -21,5 +20,5 @@ export async function GET(req: NextRequest) {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const prompts = pool.slice(0, take).map((i) => PROMPTS[i]);
-  return NextResponse.json({ prompts }, { headers: { "Cache-Control": "no-store" } });
-}
+  return Response.json({ prompts }, { headers: { "Cache-Control": "no-store" } });
+});

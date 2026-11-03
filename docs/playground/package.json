@@ -1,14 +1,15 @@
 {
-  "name": "ccxt-playground",
+  "name": "binance-agent-botos",
   "version": "0.1.0",
   "private": true,
-  "description": "Interactive multi-language playground for the CCXT cryptocurrency library",
+  "description": "Binance Agent Botos AI quant trading console",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "setup-runtimes": "bash scripts/setup-runtimes.sh"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "node .output/server/index.mjs",
+    "lint": "tsc --noEmit",
+    "setup-runtimes": "bash scripts/setup-runtimes.sh",
+    "test": "node --test scripts/tests/*.test.*"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -18,7 +19,7 @@
     "clsx": "^2.1.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.57.0",
-    "next": "^15.5.27",
+    "nitro": "3.0.260903-beta",
     "radix-ui": "^1.8.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -31,11 +32,15 @@
     "@types/node": "^22.13.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "typescript": "^5.8.0"
+    "@vitejs/plugin-react": "^6.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^8.0.0",
+    "wrangler": "^4.156.0"
   },
   "overrides": {
     "postcss": "^8.5.23",
     "dompurify": "^3.4.0",
     "sharp": "0.35.5"
-  }
+  },
+  "type": "module"
 }

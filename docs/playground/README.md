@@ -1,6 +1,11 @@
-# CCXT Playground
+# Binance-Agent-botos
 
-An online IDE that runs [CCXT](https://github.com/ccxt/ccxt) against **live public
+# Quant console and CCXT Playground services
+
+The console runs on Nitro v3 and Vite with a React client. It stores its strategy and robot configuration in browser localStorage; trading execution and account integration are not connected. The existing playground API and language runners are retained. Nitro v3 is a beta release, pinned in the lockfile. Node.js 22.22+ is required.
+
+
+The retained playground services support an online IDE that runs [CCXT](https://github.com/ccxt/ccxt) against **live public
 exchange endpoints** in multiple languages, with an AI assistant that writes the
 code for you.
 
@@ -33,13 +38,11 @@ code for you.
 cd docs/playground
 npm install
 npm run setup-runtimes        # optional but recommended (see below)
-cp .env.example .env.local    # set PLAYGROUND_AI_URL for the AI panel
+cp .env.example .env.local    # optional: configure PLAYGROUND_AI_URL for the AI API
 npm run dev                   # http://localhost:3000
 ```
 
-Press **Run** (or ⌘/Ctrl+Enter) to execute the snippet. Switch languages with
-the tabs, load ready-made snippets from **Examples…**, and toggle the AI panel
-from the toolbar.
+The console is served at the root. The retained playground API can execute snippets through `/api/run`; the current console does not expose the former editor UI. For production, set environment variables in the process or container before `npm run start` (the production server does not load `.env.local` itself).
 
 ## Deploy with Docker (recommended for any shared/public host)
 
@@ -215,10 +218,12 @@ into `runtime/java/classes` that sets `httpsProxy` + `wssProxy` from the env
 ## Layout
 
 ```
-app/
-  page.tsx              playground shell (state lives here)
-  api/run/route.ts      POST {language, code} -> execution result
-  api/ai/route.ts       POST {messages, language, code} -> streamed completion
+src/main.tsx            React console entry
+server/api/
+  run.post.ts           POST {language, code} -> execution result
+  ai.post.ts            POST {messages, language, code} -> streamed completion
+  prompts.get.ts        sampled prompts
+  ccxt-types.get.ts     editor type declarations
 components/             Toolbar, Editor (Monaco), OutputPanel, AssistantPanel
 lib/
   languages.ts          language metadata

@@ -1,13 +1,13 @@
+import { defineHandler } from "nitro";
 import { isLanguageId, type LanguageId } from "@/lib/languages";
 import { AI_ENDPOINT, buildSystemPrompt } from "@/lib/ai/assistant";
 import { clientIp, logEvent, truncate } from "@/lib/log";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export async function POST(request: Request) {
+export default defineHandler(async (event) => {
+  const request = event.req;
   if (!AI_ENDPOINT) {
     return Response.json(
       { error: "The AI assistant is not configured (PLAYGROUND_AI_URL is unset)." },
@@ -89,4 +89,4 @@ export async function POST(request: Request) {
       Connection: "keep-alive",
     },
   });
-}
+});

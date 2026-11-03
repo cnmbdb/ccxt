@@ -1,15 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import Monaco from "@monaco-editor/react";
 import type { Language } from "@/lib/languages";
 import { apiUrl } from "@/lib/basePath";
-
-const Monaco = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false,
-  loading: () => (
-    <div style={{ padding: 16, color: "hsl(var(--muted-foreground))" }}>Loading editor…</div>
-  ),
-});
 
 // Load CCXT's type declarations into Monaco's built-in TypeScript service once,
 // so TypeScript gets IntelliSense (`exchange.` lists every unified method). No LSP.
