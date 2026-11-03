@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
+import { defineHandler } from "nitro";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import ccxt from "ccxt";
 
-export const runtime = "nodejs";
 
 // Serves CCXT's base TypeScript declarations so the Monaco editor can offer
 // IntelliSense (e.g. `exchange.` lists every unified method) for JS/TS — using
@@ -55,7 +54,7 @@ export default ccxt;
 
 let cache: { libs: Lib[]; entry: string; packageJson: string; version: string } | null = null;
 
-export async function GET() {
+export default defineHandler(async () => {
   if (!cache) {
     const libs: Lib[] = [];
     await collect(BASE_DIR, libs);
@@ -69,7 +68,7 @@ export async function GET() {
     });
     cache = { libs, entry: buildEntry(exchanges, version), packageJson, version };
   }
-  return NextResponse.json(cache, {
+  return Response.json(cache, {
     headers: { "Cache-Control": "public, max-age=3600" },
   });
-}
+});

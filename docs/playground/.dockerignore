@@ -1,6 +1,7 @@
 # rebuilt inside the image
 node_modules
 .next
+.output
 runtime
 
 # secrets must never be baked into the image — passed at runtime via env

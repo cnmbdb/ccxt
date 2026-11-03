@@ -1,0 +1,14 @@
+name = "binance-agent-botos"
+compatibility_date = "2026-11-02"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./.output/public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "binance-agent-botos"
+database_id = "8b2571dd-c26b-4265-9ff5-3dfd595ae300"
+
+[vars]
+PRODUCT_NAME = "Binance-Agent-botos"

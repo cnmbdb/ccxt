@@ -60,6 +60,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import StrategyLibrary from "@/components/strategy-library";
+import SpotRiskSettings from "@/components/spot-risk-settings";
+import TradingIntegrations from "@/components/trading-integrations";
 import {
   starterStrategies,
   validateCollection,
@@ -700,7 +702,7 @@ export default function Dashboard() {
                     label: "风控状态",
                     value: "已配置",
                     unit: "",
-                    note: `单笔上限 ${risk.order} USDT · 待执行服务接入`,
+                    note: "现货风控配置 · 待执行服务接入",
                     icon: ShieldCheck,
                   },
                 ].map((item) => (
@@ -992,7 +994,18 @@ export default function Dashboard() {
                     ? prev.map((s) => (s.id === strategy.id ? strategy : s))
                     : [...prev, strategy],
                 );
-                log("策略与 Agent 配置已保存");
+                void fetch("/api/strategies", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    id: strategy.id,
+                    agentId: strategy.agent.enabled ? `${strategy.id}-agent` : "local-rule-agent",
+                    name: strategy.name,
+                    market: strategy.pair,
+                    config: strategy,
+                  }),
+                }).catch(() => undefined);
+                log("策略与 Agent 配置已保存，并同步到 Cloudflare D1");
                 return true;
               }}
               onDelete={(id) => {
@@ -1104,113 +1117,7 @@ export default function Dashboard() {
               </Card>
             </div>
           )}
-          {view === "risk" && (
-            <Card className="max-w-3xl gap-3 rounded-lg shadow-none">
-              <CardHeader>
-                <CardTitle className="text-sm">全局风控规则</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  当前保存为本地配置，接入执行服务后才能实际拦截交易。
-                </p>
-              </CardHeader>
-              <CardContent>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    log("风控配置已保存到当前浏览器，等待执行服务接入");
-                  }}
-                  className="space-y-5"
-                >
-                  {[
-                    {
-                      key: "order" as const,
-                      label: "单笔订单金额上限",
-                      unit: "USDT",
-                      max: 1000000,
-                    },
-                    {
-                      key: "position" as const,
-                      label: "单个机器人最大仓位",
-                      unit: "%",
-                      max: 100,
-                    },
-                    {
-                      key: "loss" as const,
-                      label: "每日亏损上限",
-                      unit: "USDT",
-                      max: 1000000,
-                    },
-                  ].map((f) => (
-                    <div
-                      key={f.key}
-                      className="flex items-center justify-between gap-4 border-b pb-4"
-                    >
-                      <Label htmlFor={f.key} className="text-xs">
-                        {f.label}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id={f.key}
-                          required
-                          className="h-8 w-28 text-right"
-                          type="number"
-                          min="1"
-                          max={f.max}
-                          value={risk[f.key]}
-                          onChange={(e) =>
-                            setRisk({
-                              ...risk,
-                              [f.key]: Number(e.target.value),
-                            })
-                          }
-                        />
-                        <span className="w-9 text-[10px] text-muted-foreground">
-                          {f.unit}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  {[
-                    {
-                      key: "cooldown" as const,
-                      title: "连续亏损冷却",
-                      desc: "连续亏损后暂停策略，等待人工复核。",
-                    },
-                    {
-                      key: "stopLoss" as const,
-                      title: "触及亏损上限停止",
-                      desc: "达到每日亏损限额后禁止新增订单。",
-                    },
-                  ].map((f) => (
-                    <div
-                      key={f.key}
-                      className="flex items-center justify-between gap-4"
-                    >
-                      <div>
-                        <Label htmlFor={f.key} className="text-xs">
-                          {f.title}
-                        </Label>
-                        <p className="mt-1.5 text-[11px] text-muted-foreground">
-                          {f.desc}
-                        </p>
-                      </div>
-                      <Switch
-                        id={f.key}
-                        checked={risk[f.key]}
-                        onCheckedChange={(v) =>
-                          setRisk({ ...risk, [f.key]: v })
-                        }
-                      />
-                    </div>
-                  ))}
-                  <Separator />
-                  <Button type="submit" size="sm" className="gap-2 text-xs">
-                    <Check size={13} />
-                    保存风控配置
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+          {view === "risk" && <><SpotRiskSettings /><TradingIntegrations /></>}
           {view === "settings" && (
             <Card className="max-w-3xl gap-3 rounded-lg shadow-none">
               <CardHeader>

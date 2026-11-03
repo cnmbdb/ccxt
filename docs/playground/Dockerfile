@@ -1,4 +1,4 @@
-# CCXT Playground — single image running the Next.js app + all language runtimes.
+# CCXT Playground — single image running the Nitro app + all language runtimes.
 # The CONTAINER is the security boundary: user code executes inside it and can
 # touch only the container filesystem. With no bind mounts and the resource
 # limits in docker-compose.yml, nothing on the host is reachable. (Code from
@@ -102,7 +102,7 @@ ARG RUNTIMES_REV=""
 RUN RUNTIMES_REV="$RUNTIMES_REV" bash scripts/setup-runtimes.sh \
  && npm install ccxt@latest --no-save
 
-# --- App source + Next build (seconds, and a small layer) --------------------
+# --- App source + Nitro build (seconds, and a small layer) --------------------
 COPY --chown=playground:playground . .
 
 # Sub-path the app is served under (e.g. /playground behind nginx). Baked into
